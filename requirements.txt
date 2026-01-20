@@ -17,3 +17,20 @@ passlib>=1.7.4
 python-multipart
 bcrypt==4.3.0
 pydantic[email]
+
+
+
+
+
+# HTTP client (Groq API calls)
+httpx
+
+
+
+# Image processing
+pillow
+
+# OCR
+pytesseract
+
+
