@@ -8,10 +8,16 @@ ENV PYTHONUNBUFFERED=1
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including Tesseract
 RUN apt-get update && \
-    apt-get install -y build-essential && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y \
+        build-essential \
+        tesseract-ocr \
+        libtesseract-dev \
+        libleptonica-dev \
+        pkg-config \
+        poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for caching
 COPY requirements.txt .
