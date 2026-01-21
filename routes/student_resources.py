@@ -34,7 +34,7 @@ async def upload_resource(
 from fastapi.responses import FileResponse
 
 @router.get("/resources/module")
-async def get_resources(module_name: str, db: AsyncSession = Depends(get_db)):
+async def get_resources(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(StudentResource))
     resources = result.scalars().all()
 
@@ -45,7 +45,7 @@ async def get_resources(module_name: str, db: AsyncSession = Depends(get_db)):
     ]
 
 @router.get("/module", response_model=list[StudentResourceResponse])
-async def get_resources_by_module(module_name: str, db: AsyncSession = Depends(get_db)):
+async def get_resources_by_module(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(StudentResource))
     resources = result.scalars().all()
     if not resources:
