@@ -33,9 +33,9 @@ async def upload_resource(
 
 from fastapi.responses import FileResponse
 
-@router.get("/resources/module/{module_name}")
+@router.get("/resources/module")
 async def get_resources(module_name: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(StudentResource).where(StudentResource.module_name == module_name))
+    result = await db.execute(select(StudentResource))
     resources = result.scalars().all()
 
     # Return URLs or endpoints to download
@@ -44,9 +44,9 @@ async def get_resources(module_name: str, db: AsyncSession = Depends(get_db)):
         for r in resources
     ]
 
-@router.get("/module/{module_name}", response_model=list[StudentResourceResponse])
+@router.get("/module", response_model=list[StudentResourceResponse])
 async def get_resources_by_module(module_name: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(StudentResource).where(StudentResource.module_name == module_name))
+    result = await db.execute(select(StudentResource))
     resources = result.scalars().all()
     if not resources:
         raise HTTPException(status_code=404, detail="No resources found for this module")
