@@ -17,6 +17,8 @@ from database import engine  # async engine
 from fastapi.middleware.cors import CORSMiddleware
 
 import uvicorn
+from email_utils import send_reminder_email
+
 
 app = FastAPI(title="TUT Resources App")
 
