@@ -66,6 +66,15 @@ async def init_models():
 def root():
     return {"message": "TUT Resources API is running"}
 
+@router.get("/test-email")
+async def test_email():
+    await send_reminder_email(
+        "sambokksicelo98@gmail.com",
+        "Test Event",
+        "18:00"
+    )
+    return {"status": "email sent"}
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
