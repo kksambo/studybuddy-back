@@ -19,3 +19,4 @@ bcrypt==4.3.0
 pydantic[email]
 apscheduler
 fastapi-mail
+Pillow
