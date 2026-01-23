@@ -17,8 +17,6 @@ from database import engine  # async engine
 from fastapi.middleware.cors import CORSMiddleware
 
 import uvicorn
-from email_utils import send_reminder_email
-
 
 app = FastAPI(title="TUT Resources App")
 
@@ -68,10 +66,10 @@ async def init_models():
 def root():
     return {"message": "TUT Resources API is running"}
 
-@app.get("/test-email")
+@router.get("/test-email")
 async def test_email():
     await send_reminder_email(
-        "+27763951934",
+        "sambokksicelo98@gmail.com",
         "Test Event",
         "18:00"
     )
