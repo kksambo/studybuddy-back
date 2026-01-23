@@ -5,21 +5,42 @@ from typing import List
 from database import get_db
 from models import TimetableEvent as TimetableEventModel
 from schemas import TimetableEventCreate, TimetableEvent
+from scheduler import schedule_event_reminder
+from models import User
+
 
 router = APIRouter(prefix="/timetable", tags=["timetable"])
 
 # Create a new event
 @router.post("/", response_model=TimetableEvent)
 async def create_event(
-    event: TimetableEventCreate, 
-    db: AsyncSession = Depends(get_db), 
+    event: TimetableEventCreate,
+    db: AsyncSession = Depends(get_db),
     user_id: int = 1
 ):
     db_event = TimetableEventModel(user_id=user_id, **event.dict())
     db.add(db_event)
     await db.commit()
     await db.refresh(db_event)
+
+    result = await db.execute(
+        select(User).where(User.id == user_id)
+    )
+
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+
+
+    # TEMP email (we will replace this with JWT user email later)
+    user_email = user.email
+
+    schedule_event_reminder(db_event, user_email)
+
     return db_event
+
 
 # Get all events for a user
 @router.get("/", response_model=List[TimetableEvent])

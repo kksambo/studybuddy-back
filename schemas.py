@@ -9,15 +9,18 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    grade: str
 
 class UserUpdate(BaseModel):
     email: Optional[str]
     password: Optional[str]
     role: Optional[str]
+    grade: Optional[str]
 
 class UserOut(BaseModel):
     email: Optional[str]
     role: Optional[str]
+    grade: Optional[str]
 
     class Config:
         orm_mode = True
