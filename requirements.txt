@@ -20,3 +20,4 @@ pydantic[email]
 apscheduler
 fastapi-mail
 Pillow
+pytesseract
