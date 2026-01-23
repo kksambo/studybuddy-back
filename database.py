@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = "sqlite+aiosqlite:///./studybuddy.db"
+DATABASE_URL = "sqlite+aiosqlite:///./studybuddyy.db"
 
 
 
