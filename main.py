@@ -71,7 +71,7 @@ def root():
 @app.get("/test-email")
 async def test_email():
     await send_reminder_email(
-        "sambokksicelo98@gmail.com",
+        "+27763951934",
         "Test Event",
         "18:00"
     )
