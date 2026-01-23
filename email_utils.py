@@ -1,38 +1,30 @@
 import os
-import httpx
 import logging
+from twilio.rest import Client
 
-BREVO_API_KEY = os.getenv("BREVO_API_KEY")
-MAIL_FROM = os.getenv("MAIL_FROM")
+# Twilio credentials from environment variables
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM")  # e.g., "whatsapp:+14155238886"
+
+client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 async def send_reminder_email(to: str, title: str, start_time):
+    """
+    Sends a WhatsApp reminder instead of an email.
+    'to' should be the recipient's phone number in international format, e.g., '+27831234567'
+    """
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.post(
-                "https://api.brevo.com/v3/smtp/email",
-                headers={
-                    "api-key": BREVO_API_KEY,
-                    "Content-Type": "application/json",
-                    "accept": "application/json",
-                },
-                json={
-                    "sender": {"email": MAIL_FROM, "name": "StudyBuddy"},
-                    "to": [{"email": to}],
-                    "subject": "⏰ Event Reminder",
-                    "htmlContent": f"""
-                        <p>Hi 👋</p>
-                        <p>This is a reminder that your event is starting soon.</p>
-                        <ul>
-                          <li><strong>Event:</strong> {title}</li>
-                          <li><strong>Starts at:</strong> {start_time}</li>
-                        </ul>
-                        <p>Good luck! 🚀</p>
-                    """,
-                },
-            )
+        message = f"Hi 👋\n\nThis is a reminder that your event is starting soon.\n\n" \
+                  f"📌 Event: {title}\n🕒 Starts at: {start_time}\n\nGood luck! 🚀"
 
-            response.raise_for_status()
-            logging.info("✅ Email sent successfully")
+        client.messages.create(
+            from_=TWILIO_WHATSAPP_FROM,
+            body=message,
+            to=f"whatsapp:{to}"
+        )
+
+        logging.info("✅ WhatsApp message sent successfully")
 
     except Exception as e:
-        logging.error(f"❌ Email failed: {e}")
+        logging.error(f"❌ WhatsApp message failed: {e}")
