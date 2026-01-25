@@ -162,15 +162,22 @@ async def chat_history(student_email: str, db: AsyncSession = Depends(get_db)) -
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/notes-from-handwritten-image")
-async def generate_notes_from_handwritten_image(
-    email: str,
-    image: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+from fastapi import APIRouter, UploadFile, File, HTTPException
+from PIL import Image, ImageEnhance, ImageFilter
+import pytesseract
+import io
+import re
+
+router = APIRouter()
+
+@router.post("/extract-student-card")
+async def extract_student_card_details(
+    image: UploadFile = File(...)
 ):
     """
-    Upload a handwritten or printed image and generate optimized study notes.
-    Designed for Grade 7–12 learners.
+    Upload a student card image and extract:
+    - Full Name
+    - Student Number
     """
 
     try:
@@ -181,93 +188,77 @@ async def generate_notes_from_handwritten_image(
         img = Image.open(io.BytesIO(image_bytes))
 
         # =========================
-        # 2️⃣ HANDWRITING OPTIMIZATION
+        # 2️⃣ IMAGE PREPROCESSING (ID CARD OPTIMIZED)
         # =========================
+        img = img.convert("L")  # grayscale
 
-        # Convert to grayscale
-        img = img.convert("L")
-
-        # Increase contrast
         contrast = ImageEnhance.Contrast(img)
-        img = contrast.enhance(2.0)
+        img = contrast.enhance(2.2)
 
-        # Increase sharpness
         sharpness = ImageEnhance.Sharpness(img)
-        img = sharpness.enhance(2.5)
+        img = sharpness.enhance(2.0)
 
-        # Reduce noise
         img = img.filter(ImageFilter.MedianFilter(size=3))
 
-        # Apply threshold (binarization)
-        img = img.point(lambda x: 0 if x < 140 else 255, "1")
+        # Slight thresholding (ID cards prefer softer binarization)
+        img = img.point(lambda x: 0 if x < 160 else 255, "1")
 
         # =========================
-        # 3️⃣ OCR (Handwriting Friendly)
+        # 3️⃣ OCR
         # =========================
-        ocr_config = r"--oem 1 --psm 6"
+        ocr_config = r"--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/"
         extracted_text = pytesseract.image_to_string(img, config=ocr_config)
 
         if not extracted_text.strip():
             raise HTTPException(
                 status_code=400,
-                detail="Could not detect readable text. Please upload a clearer image."
+                detail="No readable text detected. Please upload a clearer student card image."
             )
 
+        # Normalize text
+        clean_text = extracted_text.upper()
+
         # =========================
-        # 4️⃣ LLM PROMPT (NOTES)
+        # 4️⃣ STUDENT NUMBER EXTRACTION
         # =========================
-        system_prompt = (
-            "You are StudyBuddy, an academic tutor for Grade 7–12 learners. "
-            "Convert handwritten class notes into clear, well-structured study notes. "
-            "Use headings, bullet points, and simple explanations."
+        student_number = None
+
+        student_patterns = [
+            r"\b\d{6,12}\b",                  # 123456 / 202012345
+            r"\b[A-Z]{1,3}\d{5,10}\b"         # ST123456 / UJ20201234
+        ]
+
+        for pattern in student_patterns:
+            match = re.search(pattern, clean_text)
+            if match:
+                student_number = match.group()
+                break
+
+        # =========================
+        # 5️⃣ NAME EXTRACTION
+        # =========================
+        name = None
+
+        # Look for FULL NAME patterns (capital letters)
+        name_candidates = re.findall(
+            r"\b[A-Z]{2,}\s+[A-Z]{2,}(?:\s+[A-Z]{2,})?\b",
+            clean_text
         )
 
-        user_prompt = f"""
-        Extracted Class Notes:
-        {extracted_text}
-
-        Instructions:
-        - Rewrite into clean study notes
-        - Use headings and bullet points
-        - Correct spelling if necessary
-        - Keep explanations simple and learner-friendly
-        """
-
-        headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json",
-        }
-
-        payload = {
-            "model": MODEL_NAME,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "max_tokens": 500,
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(GROQ_URL, headers=headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
-
-        notes = data["choices"][0]["message"]["content"].strip()
+        if name_candidates:
+            # Pick the longest match (usually full name)
+            name = max(name_candidates, key=len)
 
         # =========================
-        # 5️⃣ Save Notes to DB
+        # 6️⃣ RESPONSE
         # =========================
-        db.add(ChatMessage(
-            student_email=email,
-            message=f"[HANDWRITTEN NOTES]\n{notes}",
-            sender="bot"
-        ))
-        await db.commit()
-
         return {
             "success": True,
-            "extracted_text": extracted_text,
-            "notes": notes
+            "data": {
+                "name": name,
+                "student_number": student_number,
+                "raw_text": extracted_text.strip()
+            }
         }
 
     except Exception as e:

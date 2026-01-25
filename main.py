@@ -66,7 +66,7 @@ async def init_models():
 def root():
     return {"message": "TUT Resources API is running"}
 
-@router.get("/test-email")
+@app.get("/test-email")
 async def test_email():
     await send_reminder_email(
         "sambokksicelo98@gmail.com",
